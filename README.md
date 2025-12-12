@@ -53,59 +53,53 @@ Le workflow interagit avec GLPI via son API REST. Vous devez récupérer deux je
 
 Le fichier `docker-compose.yml` permet de monter le serveur de messagerie local.
 
-```bash
-docker-compose up -d```
+``bash docker-compose up -d``
 
-Le serveur expose les ports suivants pour la communication SMTP et IMAP:
-
-SMTP : 25, 587
-
-IMAP : 143, 993
+Le serveur expose les ports suivants pour la communication SMTP et IMAP :
+* **SMTP** : `25`, `587`
+* **IMAP** : `143`, `993`
 
 ### 2. Importation du Workflow n8n
-Ouvrir l'interface n8n.
 
-Créer un nouveau workflow.
+1.  Ouvrir l'interface n8n.
+2.  Créer un nouveau workflow.
+3.  Importer le contenu du fichier `n8n_workflow.json`.
 
-Importer le contenu du fichier n8n_workflow.json.
+## Configuration du Workflow n8n
 
-Configuration du Workflow n8n
 Une fois le workflow importé, vous devez mettre à jour les nœuds avec vos propres configurations.
 
-Mise à jour des identifiants (Credentials)
-Dans n8n, configurer les comptes suivants:
+### Mise à jour des identifiants (Credentials)
 
-IMAP account : Identifiants du compte mail de réception (ex: supportV2@decathlon.internal).
+Dans n8n, configurer les comptes suivants :
 
-SMTP account : Identifiants pour l'envoi des réponses automatiques.
+* **IMAP account** : Identifiants du compte mail de réception (ex: `supportV2@decathlon.internal`).
+* **SMTP account** : Identifiants pour l'envoi des réponses automatiques.
+* **Mistral Cloud account** : Votre clé API Mistral.
 
-Mistral Cloud account : Votre clé API Mistral.
+### Mise à jour des Nœuds HTTP Request (GLPI)
 
-Mise à jour des Nœuds HTTP Request (GLPI)
 Le workflow contient deux nœuds nécessitant vos URLs et Tokens GLPI.
 
-Nœud : HTTP Request (Initialisation Session)
+**Nœud : HTTP Request (Initialisation Session)**
 
-URL : Remplacer http://192.168.1.202 par l'adresse IP ou le domaine de votre GLPI.
+* **URL** : Remplacer `http://192.168.1.202` par l'adresse IP ou le domaine de votre GLPI.
+* **Header Authorization** : Remplacer `user_token CHANGEME` par votre User-Token généré précédemment.
+* **Header App-Token** : Remplacer la valeur par votre App-Token.
 
-Header Authorization : Remplacer user_token CHANGEME par votre User-Token généré précédemment.
+**Nœud : HTTP Request1 (Création Ticket)**
 
-Header App-Token : Remplacer la valeur par votre App-Token.
+* **URL** : Mettre à jour l'IP vers votre GLPI.
+* **Header App-Token** : Remplacer la valeur `CHANGEME` par votre App-Token.
 
-Nœud : HTTP Request1 (Création Ticket)
+### Mapping des Catégories (Script Javascript)
 
-URL : Mettre à jour l'IP vers votre GLPI.
-
-Header App-Token : Remplacer la valeur CHANGEME par votre App-Token.
-
-Mapping des Catégories (Script Javascript)
-Le nœud Code in JavaScript fait correspondre l'analyse de l'IA avec les IDs de votre base de données GLPI. Vous devez adapter les IDs (entiers) selon votre installation.
+Le nœud **Code in JavaScript** fait correspondre l'analyse de l'IA avec les IDs de votre base de données GLPI. Vous devez adapter les IDs (entiers) selon votre installation.
 
 Chercher la section suivante dans le code du nœud et modifier les valeurs numériques :
 
-JavaScript
-
-//⚠️ Mettre ici les VRAIS IDs GLPI (table itilcategories)
+```javascript
+// ⚠️ Mettre ici les VRAIS IDs GLPI (table itilcategories)
 const CATEGORY_ID = {
   "serveur de fichier partage": 2, // Remplacer par l'ID GLPI correspondant
   "poste de travail": 1,
