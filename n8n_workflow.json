@@ -1,0 +1,259 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.1.202/apirest.php/initSession",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{ \"Authorization\": \"user_token CHANGEME\", \"App-Token\": \"vBRzARhszhJPwRQtTTMaxbtRRetcJEbaUarW3EeG\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -384,
+        -352
+      ],
+      "id": "27634d45-0cc3-4524-8449-92d751697368",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.1.202/apirest.php/Ticket/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $('HTTP Request').item.json.session_token }}"
+            },
+            {
+              "name": "App-Token",
+              "value": "CHANGEME"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"input\": { \"name\": \"{{ $('Email Trigger (IMAP)1').item.json.subject }}\", \"content\": \"{{ $('Code in JavaScript').item.json.ai_summary }}\", \"users_id_recipient\": 2, \"status\": 1, \"impact\": {{ $('Code in JavaScript').item.json.mapped_urgency }}, \"urgency\": {{ $('Code in JavaScript').item.json.mapped_urgency }}, \"priority\": {{ $('Code in JavaScript').item.json.mapped_urgency }}, \"itilcategories_id\": {{ $('Code in JavaScript').item.json.mapped_category_id }} } }\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        -352
+      ],
+      "id": "5d2a7da7-b9ee-48ad-9fab-4cd286e5cd4e",
+      "name": "HTTP Request1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant de support technique interne pour Decathlon.\n\nVoici un e-mail reçu d'un collaborateur :\n\nExpéditeur : {{ $json[\"from\"] }}\nObjet : {{ $json[\"subject\"] }}\n\nCorps du message :\n{{ $json[\"textPlain\"] }}\n\nTa mission :\n1. Résumer clairement le problème en une ou deux phrases.\n2. Proposer une catégorie métier parmi :\n   \"poste de travail\", \"réseau / VPN\", \"sécurité\", \"application métier\", \"autre\".\n3. Déterminer une priorité métier parmi : \"haute\", \"moyenne\", \"basse\".\n\nRéponds UNIQUEMENT avec un JSON VALIDE, sans texte autour :\n{\n  \"ai_summary\": \"...\",\n  \"ai_category\": \"Serveur de fichier partagé|Poste de travail|Connexion internet|Divers\"\n  \"ai_priority\": \"haute|moyenne|basse\"\n}\n\n- ai_category doit être EXACTEMENT une des 4 valeurs suivantes :\n\"Serveur de fichier partagé\", \"Poste de travail\", \"Connexion internet\", \"Divers\"\n- Si tu hésites -> \"Divers\"\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -992,
+        -352
+      ],
+      "id": "e925ad51-bc35-483d-9fc0-346360898d4b",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        176
+      ],
+      "id": "05d284d0-4e58-473a-a714-2ead51a8296a",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "CHANGEME",
+          "name": "Mistral Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "forceReconnect": 5
+        }
+      },
+      "id": "61061098-4570-43f6-85be-af5f0d13ef35",
+      "name": "Email Trigger (IMAP)1",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        -1232,
+        -352
+      ],
+      "credentials": {
+        "imap": {
+          "id": "K6Q5mWFqZS5jSa6S",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractJsonObject(str) {\n  if (!str) return null;\n\n  // 1) enlever les fences Markdown ```json ... ```\n  str = String(str).trim();\n  str = str.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n\n  // 2) extraire la partie entre la première { et la dernière }\n  const start = str.indexOf('{');\n  const end = str.lastIndexOf('}');\n  if (start === -1 || end === -1 || end <= start) return null;\n\n  return str.slice(start, end + 1);\n}\n\nconst raw = $json.text || $json.output || $json.response;\n\nconst jsonStr = extractJsonObject(raw);\nif (!jsonStr) {\n  throw new Error('Aucun objet JSON détecté dans la réponse IA : ' + raw);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error('JSON invalide après nettoyage : ' + jsonStr);\n}\n\nconst rawPriority = (parsed.ai_priority ?? '')\n  .toString()\n  .trim()\n  .toLowerCase();\n\nlet mappedPriority;\n\nswitch (rawPriority) {\n  case 'haute':\n    mappedPriority = 5;\n    break;\n  case 'moyenne':\n    mappedPriority = 3;\n    break;\n  case 'basse':\n    mappedPriority = 2;\n    break;\n  default:\n    mappedPriority = 2; // fallback sécurité\n}\n\nfunction normalize(s) {\n  return (s ?? \"\")\n    .toString()\n    .trim()\n    .toLowerCase()\n    .normalize(\"NFD\")\n    .replace(/[\\u0300-\\u036f]/g, \"\"); // enlève accents\n}\n\nconst rawCategory = normalize(parsed.ai_category);\n\n// ⚠️ Mets ici les VRAIS IDs GLPI (itilcategories_id)\nconst CATEGORY_ID = {\n  \"serveur de fichier partage\": 2,\n  \"poste de travail\": 1,\n  \"connexion internet\": 3,\n  \"divers\": 4,\n};\n\nconst mappedCategoryId = CATEGORY_ID[rawCategory] ?? CATEGORY_ID[\"divers\"];\n\n\n\nreturn [\n  {\n    json: {\n      ai_summary: parsed.ai_summary ?? null,\n      ai_category: parsed.ai_category ?? null,\n      ai_priority: rawPriority,          // string nettoyée\n      mapped_priority: mappedPriority,   // ← NOMBRE GARANTI\n      mapped_urgency: mappedPriority,    // si tu veux pareil\n\n      mapped_category_id: mappedCategoryId, // ✅ NOMBRE garanti\n\n      \n      _raw_llm: raw,\n      _json_clean: jsonStr\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        -352
+      ],
+      "id": "9db2a511-831e-40b0-b247-3966468b14dc",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Email Trigger (IMAP)1').item.json.metadata['delivered-to'] }}",
+        "toEmail": "={{ $('Email Trigger (IMAP)1').item.json.from }}",
+        "subject": "={{ $('Email Trigger (IMAP)1').item.json.subject }}",
+        "emailFormat": "text",
+        "text": "=Nous avons bien pris en compte votre demande, http://192.168.1.202/front/ticket.form.php?id={{ $('HTTP Request1').item.json.id }}\n\nRéponse : {{ $json.text }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        -368
+      ],
+      "id": "25d7db88-1e19-4fe4-8423-e7f2dbbe8179",
+      "name": "Send email",
+      "webhookId": "1ec1fa08-a77a-427d-8de3-0b0c69dd4071",
+      "retryOnFail": false,
+      "credentials": {
+        "smtp": {
+          "id": "DwFyaDP53VnuuaoU",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==Tu es un assistant de support technique interne pour Decathlon.\n\nVoici un e-mail reçu d'un collaborateur :\n\nExpéditeur : {{ $('Email Trigger (IMAP)1').item.json.from }}\nObjet : {{ $('Email Trigger (IMAP)1').item.json.subject }}\n\nCorps du message :\n{{ $('Email Trigger (IMAP)1').item.json.textPlain }}\n\nObjectif :\n1) Décider si l'e-mail contient assez d'informations pour créer un ticket GLPI exploitable.\n2) Si NON, générer un message clair et concis pour demander les précisions manquantes n'inclut pas ce que tu as deja observé, demande juste à l'user de completer sa demande avec les questions que tu trouves pertinentes.\n\nRègle de décision \"manque de contexte\" (is_clarification_needed=true) :\n- Le problème n'est pas identifiable (ex: \"ça marche pas\" sans préciser quoi)\n- Pas de symptôme concret (message d'erreur, comportement observé)\n- Pas d'impact (bloquant ou non)\n- Pas d'élément permettant d'agir : application/nom du dossier partagé/URL/nom du site/équipement/lieu, etc.\n- Le corps est trop court / vague / ambigu\n\nNE METS PAS DANS TA REPONSE L'ANALYSE DU MAIL, REPONDS JUSTE LES DETAILS MANQUANTS!",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        16,
+        -32
+      ],
+      "id": "5e10a12a-998d-4eb4-b90f-6d10bf84e5bf",
+      "name": "Basic LLM Chain1"
+    }
+  ],
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Trigger (IMAP)1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f5141e4721f11fe8e40ceec6cdf4df4ac4af7a495b875f67cc6d07aaf69f9488"
+  }
+}

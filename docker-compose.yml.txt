@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    container_name: mailserver
+
+    # Configuration du nom d'hôte (FQDN: mail.support.local)
+    hostname: mail
+    domainname: support.local
+
+    # Fichier de variables d'environnement (comptes, config spam, etc.)
+    env_file:
+      - mailserver.env
+
+    # Ports exposés
+    ports:
+      - "25:25"       # SMTP (Transfert de mails entre serveurs)
+      - "587:587"     # SMTP Submission (Envoi de mails par les clients)
+      - "143:143"     # IMAP (Non sécurisé / STARTTLS)
+      - "993:993"     # IMAP (SSL/TLS - Recommandé)
+
+    # Persistance des données (Mails, États, Logs, Config)
+    volumes:
+      - ./data/mail:/var/mail                 # Stockage des emails
+      - ./data/state:/var/mail-state          # État du serveur (ex: Rspamd, ClamAV)
+      - ./data/logs:/var/log/mail             # Logs
+      - ./config/:/tmp/docker-mailserver/     # Fichiers de configuration personnalisés
+      - /etc/localtime:/etc/localtime:ro      # Synchro de l'heure avec l'hôte (important pour les logs)
+
+    restart: always
+
+    # Laisse 1 minute au serveur pour s'éteindre proprement (vital pour ClamAV/Rspamd)
+    stop_grace_period: 1m
+
+    # Capacités requises pour Fail2Ban et certaines fonctions de sécurité
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
