@@ -54,7 +54,7 @@ Le workflow interagit avec GLPI via son API REST. Vous devez récupérer deux je
 Le fichier `docker-compose.yml` permet de monter le serveur de messagerie local.
 
 ```bash
-docker-compose up -d
+docker-compose up -d```
 
 Le serveur expose les ports suivants pour la communication SMTP et IMAP:
 
