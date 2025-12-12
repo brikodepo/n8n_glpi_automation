@@ -1,13 +1,13 @@
 # Prototype d'Assistance Technique Automatisée (Support V2)
 
-[cite_start]Ce projet est un prototype développé dans le cadre de la modernisation du support interne[cite: 5]. [cite_start]Il vise à réduire la charge du front-desk en automatisant la qualification, la priorisation et la création des tickets d'incidents dans l'outil ITSM (GLPI) à partir de la réception d'emails[cite: 6].
+Ce projet est un prototype développé dans le cadre de la modernisation du support interne. Il vise à réduire la charge du front-desk en automatisant la qualification, la priorisation et la création des tickets d'incidents dans l'outil ITSM (GLPI) à partir de la réception d'emails.
 
 ## Fonctionnalités
 
-* [cite_start]**Réception des demandes** : Interception des emails envoyés au support via un serveur de messagerie conteneurisé[cite: 8, 26].
-* [cite_start]**Analyse par Intelligence Artificielle** : Utilisation du modèle Mistral AI pour analyser sémantiquement la demande, résumer le problème et déduire la catégorie métier[cite: 33, 34].
-* [cite_start]**Priorisation Automatique** : Classement de la criticité (Haute, Moyenne, Basse) selon une matrice de décision métier stricte[cite: 20].
-* [cite_start]**Création de Ticket GLPI** : Génération automatique du ticket via l'API REST avec les champs pré-remplis (Titre, Description, Urgence)[cite: 10, 62].
+* **Réception des demandes** : Interception des emails envoyés au support via un serveur de messagerie conteneurisé.
+* **Analyse par Intelligence Artificielle** : Utilisation du modèle Mistral AI pour analyser sémantiquement la demande, résumer le problème et déduire la catégorie métier.
+* **Priorisation Automatique** : Classement de la criticité (Haute, Moyenne, Basse) selon une matrice de décision métier stricte.
+* **Création de Ticket GLPI** : Génération automatique du ticket via l'API REST avec les champs pré-remplis (Titre, Description, Urgence).
 * **Gestion des compléments** : Si la demande est trop vague, le système détecte le manque d'information et envoie automatiquement un email à l'utilisateur pour demander des précisions.
 
 ## Architecture Technique
@@ -16,10 +16,10 @@
 
 | Composant | Rôle |
 | :--- | :--- |
-| **n8n** | [cite_start]Orchestrateur central pilotant le flux de données entre le mail, l'IA et GLPI[cite: 31]. |
-| **Docker Mailserver** | [cite_start]Serveur de messagerie local (Postfix/Dovecot) simulant la réception (`supportV2@decathlon.internal`)[cite: 26, 28]. |
-| **Mistral AI (API)** | [cite_start]LLM utilisé pour la compréhension du langage naturel et le formatage JSON[cite: 33]. |
-| **GLPI** | [cite_start]Solution ITSM finale accessible via API REST[cite: 35]. |
+| **n8n** | Orchestrateur central pilotant le flux de données entre le mail, l'IA et GLPI. |
+| **Docker Mailserver** | Serveur de messagerie local (Postfix/Dovecot) simulant la réception (`supportV2@decathlon.internal`). |
+| **Mistral AI (API)** | LLM utilisé pour la compréhension du langage naturel et le formatage JSON. |
+| **GLPI** | Solution ITSM finale accessible via API REST. |
 
 ## Prérequis et Configuration des APIs
 
@@ -105,7 +105,7 @@ Chercher la section suivante dans le code du nœud et modifier les valeurs numé
 
 JavaScript
 
-// ⚠️ Mettre ici les VRAIS IDs GLPI (table itilcategories)
+//⚠️ Mettre ici les VRAIS IDs GLPI (table itilcategories)
 const CATEGORY_ID = {
   "serveur de fichier partage": 2, // Remplacer par l'ID GLPI correspondant
   "poste de travail": 1,
